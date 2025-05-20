@@ -1,0 +1,6 @@
+streamlit
+python-docx
+pandas
+pydantic>=1.8.0,<2.0.0
+sqlparse>=0.4.0,<0.5.0
+# Add other libraries as needed, e.g., for SQL parsing if query_context.sql is used

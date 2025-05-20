@@ -1,0 +1,4 @@
+CongaField,RelatedBoxField,DataType,SourceTable
+{{OpportunityName}},opportunity.name,string,Opportunity
+{{AccountName}},opportunity.account.name,string,Account
+{{PrimaryContactEmail}},opportunity.primary_contact.email,string,Contact
