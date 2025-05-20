@@ -1,15 +1,24 @@
-import streamlit as st
 import os
-import tempfile
+import sys
+import streamlit as st
 
-# Custom module imports
+# Add the project root to the Python path
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+# Custom module imports using absolute imports
 from src.parsers.json_parser import parse_schema_mapping, SchemaParserError
 from src.parsers.csv_parser import parse_query_context, CsvParserError
 from src.parsers.docx_parser import extract_elements_from_docx, DocxParserError
-from src.parsers.sql_parser import parse_sql_query_context, SqlParserError # Added SQL parser
-from src.core.conversion_engine import convert_template, ConversionEngineError # Added conversion engine
+from src.parsers.sql_parser import parse_sql_query_context, SqlParserError
+from src.core.conversion_engine import convert_template, ConversionEngineError
 from src.DTOs.models import (
-    SchemaMapping, QueryContextRow, SqlQueryContext, ParsedTemplateElement, ConversionOutput # Added ConversionOutput
+    SchemaMapping,
+    QueryContextRow,
+    SqlQueryContext,
+    ParsedTemplateElement,
+    ConversionOutput
 )
 
 # Define project paths
