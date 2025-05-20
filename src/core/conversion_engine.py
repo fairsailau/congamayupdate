@@ -1,12 +1,12 @@
 from typing import List, Dict, Any, Optional
-from ..DTOs.models import (
+from src.DTOs.models import (
     SchemaMapping,
     QueryContextRow,
     SqlQueryContext,
     ParsedTemplateElement,
-    CongaMergeField, # Explicitly import for isinstance checks
-    CongaControlTag, # Explicitly import for isinstance checks
-    TextSegment,     # Explicitly import for isinstance checks
+    CongaMergeField,  # Explicitly import for isinstance checks
+    CongaControlTag,  # Explicitly import for isinstance checks
+    TextSegment,      # Explicitly import for isinstance checks
     ConversionOutput,
     MappingReportEntry,
     PerformanceMetrics,
