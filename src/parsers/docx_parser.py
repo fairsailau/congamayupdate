@@ -1,9 +1,14 @@
 import re
-from typing import List, Union, BinaryIO
+from typing import List, BinaryIO
 from docx import Document
 
-# Assuming DTOs.models is in ..DTOs.models relative to src.parsers.docx_parser
-from ..DTOs.models import CongaMergeField, CongaControlTag, TextSegment, ParsedTemplateElement 
+# Use absolute imports
+from src.DTOs.models import (
+    CongaMergeField,
+    CongaControlTag,
+    TextSegment,
+    ParsedTemplateElement
+)
 
 class DocxParserError(Exception):
     """Custom exception for DOCX parsing errors."""
@@ -11,7 +16,7 @@ class DocxParserError(Exception):
 
 # Regex to find Conga tags: {{...}}
 # It captures the content inside the double curly braces.
-CONGA_TAG_REGEX = r"\{\{([^}]+)\}\}"  # For python: r"{{([^}]+)}}"
+CONGA_TAG_REGEX = r"\{\{([^}]+)\}\}" # For python: r"{{([^}]+)}}"
 
 def _parse_tag_content(full_tag: str, inner_content: str) -> ParsedTemplateElement:
     """
@@ -79,64 +84,26 @@ def _extract_elements_from_text(text: str) -> List[ParsedTemplateElement]:
     
     return elements
 
-def extract_elements_from_docx(file_path_or_uploaded_file: Union[str, BinaryIO]) -> List[ParsedTemplateElement]:
+def extract_elements_from_docx(file_path: str) -> List[ParsedTemplateElement]:
     """
     Parses a .docx Conga template to extract merge fields and control tags.
 
     Args:
-        file_path_or_uploaded_file: Either a file path (str) or a file-like object (e.g., from Streamlit file_uploader).
+        file_path: The absolute path to the .docx template file.
 
     Returns:
-        A list of ParsedTemplateElement objects (CongaMergeField or CongaControlTag or TextSegment).
+        A list of ParsedTemplateElement objects (CongaMergeField or CongaControlTag).
         Returns an empty list if no tags are found or if the document is empty.
         
     Raises:
         DocxParserError: If the file cannot be read or if there's an issue with the docx format.
     """
     try:
-        # Handle both file path strings and file-like objects (e.g., from Streamlit file_uploader)
-        if isinstance(file_path_or_uploaded_file, str):
-            # It's a file path
-            document = Document(file_path_or_uploaded_file)
-        else:
-            # It's a file-like object (e.g., from Streamlit file_uploader)
-            # Save to a temporary file and then open it
-            import tempfile
-            import os
-            import io
-            
-            # For file-like objects, we need to handle both BytesIO and other file-like objects
-            if hasattr(file_path_or_uploaded_file, 'read'):
-                # If it's a file-like object, read its content
-                file_content = file_path_or_uploaded_file.read()
-                if hasattr(file_path_or_uploaded_file, 'seek'):
-                    file_path_or_uploaded_file.seek(0)  # Reset file pointer if possible
-            else:
-                raise DocxParserError("Unsupported file input type")
-            
-            # Create a temporary file with the correct extension
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
-                # Write the uploaded file's content to the temporary file
-                if isinstance(file_content, str):
-                    tmp.write(file_content.encode('utf-8'))
-                else:
-                    tmp.write(file_content)
-                tmp_path = tmp.name
-                
-            try:
-                # Open the temporary file
-                document = Document(tmp_path)
-            finally:
-                # Clean up the temporary file
-                try:
-                    os.unlink(tmp_path)
-                except:
-                    pass  # Ignore errors during cleanup
-                    
+        document = Document(file_path)
     except FileNotFoundError:
-        raise DocxParserError(f"Error: DOCX template file not found at {file_path_or_uploaded_file}")
-    except Exception as e:  # Catches other errors from python-docx like bad format
-        raise DocxParserError(f"Error: Could not read or open DOCX template. Details: {e}")
+        raise DocxParserError(f"Error: DOCX template file not found at {file_path}")
+    except Exception as e: # Catches other errors from python-docx like bad format
+        raise DocxParserError(f"Error: Could not read or open DOCX template file {file_path}. Details: {e}")
 
     all_elements: List[ParsedTemplateElement] = []
 
@@ -144,7 +111,7 @@ def extract_elements_from_docx(file_path_or_uploaded_file: Union[str, BinaryIO])
     for para in document.paragraphs:
         if para.text.strip():  # Only process non-empty paragraphs
             all_elements.extend(_extract_elements_from_text(para.text))
-            # Add a newline to separate paragraphs
+            # Add a newline to separate paragraphs (optional, adjust as needed)
             all_elements.append(TextSegment(
                 original_tag="\n",
                 content="\n"
@@ -158,7 +125,7 @@ def extract_elements_from_docx(file_path_or_uploaded_file: Union[str, BinaryIO])
                 for para_in_cell in cell.paragraphs:
                     if para_in_cell.text.strip():
                         all_elements.extend(_extract_elements_from_text(para_in_cell.text))
-                # Add a tab or other separator between cells
+                # Add a tab or other separator between cells (optional)
                 all_elements.append(TextSegment(
                     original_tag="\t",
                     content="\t"
@@ -173,24 +140,48 @@ def extract_elements_from_docx(file_path_or_uploaded_file: Union[str, BinaryIO])
 
 if __name__ == '__main__':
     import os
-    import sys
-    from pprint import pprint
-    
-    # Simple test if run directly
-    if len(sys.argv) > 1:
-        file_path = sys.argv[1]
-        if os.path.exists(file_path):
-            try:
-                elements = extract_elements_from_docx(file_path)
-                print(f"Extracted {len(elements)} elements:")
-                for elem in elements:
-                    if isinstance(elem, TextSegment):
-                        print(f"Text: {repr(elem.content)}")
-                    else:
-                        print(f"Tag: {elem.original_tag} (Type: {type(elem).__name__})")
-            except Exception as e:
-                print(f"Error: {e}")
-        else:
-            print(f"File not found: {file_path}")
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    DUMMY_DOCX_FILE = os.path.join(PROJECT_ROOT, "input_data", "conga_template.docx")
+
+    if not os.path.exists(DUMMY_DOCX_FILE) or os.path.getsize(DUMMY_DOCX_FILE) == 0:
+        try:
+            print(f"Creating a simple dummy DOCX for testing at {DUMMY_DOCX_FILE}...")
+            doc = Document()
+            # Note: f-string curly braces need to be doubled to be literal {{}}
+            doc.add_paragraph(f"Hello {{{{Name}}}}, this is a test.")
+            doc.add_paragraph("{{IF:ShowDetails}}Details here.{{ENDIF}}")
+            table_obj = doc.add_table(rows=1, cols=2) # Renamed variable
+            table_obj.cell(0,0).text = "{{TableStart:Contacts}}"
+            table_obj.cell(0,1).text = "{{ContactName}}"
+            doc.add_paragraph("{{TableEnd:Contacts}}")
+            doc.save(DUMMY_DOCX_FILE)
+            print("Dummy DOCX created.")
+        except Exception as e:
+            print(f"Could not create dummy DOCX: {e}")
+
+    print(f"Attempting to parse: {DUMMY_DOCX_FILE}")
+    if os.path.exists(DUMMY_DOCX_FILE):
+        try:
+            elements = extract_elements_from_docx(DUMMY_DOCX_FILE)
+            if elements:
+                print(f"\nSuccessfully extracted {len(elements)} elements from DOCX:")
+                for i, elem in enumerate(elements):
+                    print(f"  Element {i+1}: {elem.model_dump_json()}") # Using model_dump_json for Pydantic v2
+                    if isinstance(elem, CongaMergeField):
+                        print(f"    Type: MergeField, Name: {elem.field_name}")
+                    elif isinstance(elem, CongaControlTag):
+                        print(f"    Type: ControlTag, Control: {elem.control_type}, Param: {elem.parameter}")
+            else:
+                print("No elements extracted or parsing returned None/empty list.")
+        except DocxParserError as e:
+            print(f"DOCX Parsing Test Failed: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during DOCX parsing testing: {e}")
     else:
-        print("Usage: python docx_parser.py <path_to_docx_file>")
+        print(f"Test DOCX file {DUMMY_DOCX_FILE} not found and could not be created. Skipping DOCX parser test.")
+
+    print("\nAttempting to parse non_existent_template.docx:")
+    try:
+        extract_elements_from_docx("non_existent_template.docx")
+    except DocxParserError as e:
+        print(f"Successfully caught expected error: {e}")
