@@ -24,11 +24,12 @@ class SchemaMapping(BaseModel):
 
 class QueryContextRow(BaseModel):
     """Represents a single row from the query_context.csv file."""
-    CongaField: str
-    RelatedBoxField: Optional[str] = None
-    DataType: Optional[str] = None
-    SourceTable: Optional[str] = None
-    # Add other relevant columns from your CSV/SQL query output as needed
+    model_config = {"from_attributes": True}
+    
+    CongaField: str = Field(..., description="The field name in the Conga template")
+    RelatedBoxField: Optional[str] = Field(None, description="The corresponding Box field name")
+    DataType: Optional[str] = Field(None, description="The data type of the field")
+    SourceTable: Optional[str] = Field(None, description="The source table for the field")
 
 
 class SqlQueryContext(BaseModel):
